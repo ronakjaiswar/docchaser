@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard - DocChaser</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <nav class="bg-white shadow-sm border-b">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <h1 class="text-xl font-bold text-gray-800">DocChaser</h1>
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-gray-600"><%= firmName %></span>
+        <form action="/auth/logout" method="POST">
+          <button type="submit" class="text-sm text-red-600 hover:underline">Logout</button>
+        </form>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <div class="flex gap-2">
+  <a href="/clients/import" class="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 text-sm font-medium">
+    📥 Import
+  </a>
+  <a href="/clients/new" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm font-medium">
+    + Add Client
+  </a>
+</div>
+
+    <section class="grid grid-cols-2 gap-3 my-6 md:grid-cols-4" aria-label="Client and document summary">
+      <div class="rounded-lg border-l-4 border-blue-500 bg-white p-4 shadow-sm">
+        <p class="text-xs font-medium uppercase text-gray-500">Total Clients</p>
+        <p class="mt-1 text-2xl font-bold text-gray-800"><%= stats.totalClients %></p>
+      </div>
+      <div class="rounded-lg border-l-4 border-yellow-400 bg-white p-4 shadow-sm">
+        <p class="text-xs font-medium uppercase text-gray-500">Pending</p>
+        <p class="mt-1 text-2xl font-bold text-gray-800"><%= stats.pending %></p>
+      </div>
+      <div class="rounded-lg border-l-4 border-green-500 bg-white p-4 shadow-sm">
+        <p class="text-xs font-medium uppercase text-gray-500">Received</p>
+        <p class="mt-1 text-2xl font-bold text-gray-800"><%= stats.received %></p>
+      </div>
+      <div class="rounded-lg border-l-4 border-purple-500 bg-white p-4 shadow-sm">
+        <p class="text-xs font-medium uppercase text-gray-500">Documents Collected</p>
+        <p class="mt-1 text-2xl font-bold text-gray-800"><%= stats.totalDocuments %></p>
+      </div>
+    </section>
+
+    <% if (clients.length === 0) { %>
+      <div class="bg-white p-12 rounded-lg shadow-sm text-center">
+        <p class="text-gray-500">No clients yet. Add your first one.</p>
+      </div>
+    <% } else { %>
+      <div class="grid gap-4">
+        <% clients.forEach(client => { %>
+          <div class="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center">
+            <div>
+              <a href="/dashboard/clients/<%= client.id %>" class="font-medium text-gray-800 hover:text-blue-600 hover:underline">
+                <%= client.name %>
+              </a>
+              <p class="text-sm text-gray-500">+91 <%= client.phone %></p>
+
+              <div class="mt-2">
+                <% if (client.status === 'received') { %>
+                  <span class="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">
+                    ✓ Received (<%= client.docCount %> files)
+                  </span>
+                  <% if (client.aiExtracted) { %>
+                    <span class="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-medium">
+                      🤖 AI extracted
+                    </span>
+                  <% } %>
+                <% } else if (client.status === 'pending') { %>
+                  <span class="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-xs font-medium">
+                    ⏳ Pending
+                  </span>
+                <% } else { %>
+                  <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-medium">
+                    No request
+                  </span>
+                <% } %>
+              </div>
+            </div>
+
+            <button
+              onclick="requestDocs('<%= client.id %>', this)"
+              class="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700">
+              Request Docs
+            </button>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </main>
+
+  <script>
+    async function requestDocs(clientId, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        const res = await fetch(`/clients/${clientId}/request`, { method: 'POST' });
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert('Error: ' + (data.error || 'Something went wrong'));
+          btn.disabled = false;
+          btn.textContent = 'Request Docs';
+          return;
+        }
+
+        window.open(data.waLink, '_blank');
+        btn.textContent = 'Sent ✓';
+        btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+        btn.classList.add('bg-gray-400');
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } catch (err) {
+        alert('Error: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Request Docs';
+      }
+    }
+  </script>
+</body>
+</html>

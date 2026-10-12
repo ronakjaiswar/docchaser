@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= client.name %> - DocChaser</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <nav class="bg-white shadow-sm border-b">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <a href="/dashboard" class="text-xl font-bold text-gray-800">DocChaser</a>
+      <a href="/dashboard" class="text-sm text-blue-600 hover:underline">← Back</a>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+      <h1 class="text-2xl font-bold text-gray-800"><%= client.name %></h1>
+      <p class="text-gray-500 mt-1">+91 <%= client.phone %></p>
+    </div>
+
+    <% if (insights.documentsAnalyzed > 0) { %>
+      <section class="mb-6 rounded-lg bg-gradient-to-r from-purple-700 to-blue-600 p-5 text-white shadow-sm">
+        <h2 class="text-lg font-semibold">AI Insights</h2>
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <p class="text-xs uppercase text-white/75">Documents Analyzed</p>
+            <p class="mt-1 text-2xl font-bold"><%= insights.documentsAnalyzed %></p>
+          </div>
+          <div>
+            <p class="text-xs uppercase text-white/75">Total Amount</p>
+            <p class="mt-1 text-2xl font-bold"><%= insights.totalAmount %></p>
+          </div>
+          <div>
+            <p class="text-xs uppercase text-white/75">Unique GSTINs</p>
+            <p class="mt-1 text-2xl font-bold"><%= insights.uniqueGstins %></p>
+          </div>
+        </div>
+      </section>
+    <% } %>
+
+    <h2 class="text-lg font-bold text-gray-800 mb-4">Document Requests</h2>
+
+    <% if (requests.length === 0) { %>
+      <div class="bg-white p-8 rounded-lg shadow-sm text-center">
+        <p class="text-gray-500">No requests sent yet.</p>
+      </div>
+    <% } else { %>
+      <div class="space-y-5">
+        <% requests.forEach(request => { %>
+          <% if (request.documents && request.documents.length > 0) { %>
+            <section class="space-y-3">
+              <h3 class="text-sm font-semibold text-gray-600">Request · <%= new Date(request.created_at).toLocaleDateString('en-IN') %></h3>
+              <% request.documents.forEach(doc => { %>
+                <article class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                  <header class="flex flex-wrap items-center justify-between gap-3 bg-gray-100 px-4 py-3">
+                    <div class="flex min-w-0 items-center gap-2">
+                      <span class="text-lg" aria-hidden="true">📄</span>
+                      <span class="break-all text-sm font-medium text-gray-800"><%= doc.file_name %></span>
+                      <% if (doc.extraction_status === 'completed') { %>
+                        <span class="shrink-0 rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-700">AI ✓</span>
+                      <% } else if (doc.extraction_status === 'processing') { %>
+                        <span class="shrink-0 animate-pulse rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">Analyzing...</span>
+                      <% } else if (doc.extraction_status === 'failed') { %>
+                        <span class="shrink-0 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700">AI failed</span>
+                      <% } else if (doc.extraction_status === 'retry_pending') { %>
+                        <span class="shrink-0 rounded bg-orange-100 px-2 py-1 text-xs font-medium text-orange-800">Retry needed</span>
+                      <% } %>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                      <a href="<%= doc.file_url %>" target="_blank" rel="noopener noreferrer" class="rounded bg-white px-3 py-1.5 text-sm font-medium text-blue-700 ring-1 ring-gray-300 hover:bg-blue-50">View</a>
+                      <a href="/dashboard/documents/<%= doc.id %>/download" class="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">Download</a>
+                      <% if (doc.extraction_status === 'failed' || doc.extraction_status === 'retry_pending') { %>
+                        <button type="button" onclick="retryExtraction('<%= doc.id %>', this)" class="rounded bg-orange-100 px-3 py-1.5 text-sm font-medium text-orange-800 hover:bg-orange-200">Retry AI</button>
+                      <% } %>
+                    </div>
+                  </header>
+
+                  <% if (doc.extraction_status === 'completed') { %>
+                    <% const extractedFields = [
+                      { label: 'Type', value: doc.doc_type ? doc.doc_type.replace(/_/g, ' ') : null },
+                      { label: 'Vendor', value: doc.vendor_name },
+                      { label: 'Invoice #', value: doc.invoice_no },
+                      { label: 'Date', value: doc.invoice_date },
+                      { label: 'Amount', value: doc.amount, amount: true },
+                      { label: 'GSTIN', value: doc.gstin, gstin: true }
+                    ].filter(field => field.value) %>
+                    <% if (extractedFields.length > 0) { %>
+                      <div class="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3">
+                        <% extractedFields.forEach(field => { %>
+                          <div class="min-w-0">
+                            <p class="text-xs font-medium uppercase text-gray-500"><%= field.label %></p>
+                            <p class="mt-1 break-words text-sm font-medium <%= field.amount ? 'font-bold text-green-700' : 'text-gray-800' %>">
+                              <% if (field.gstin) { %><span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs"><%= field.value %></span><% } else { %><%= field.value %><% } %>
+                            </p>
+                          </div>
+                        <% }) %>
+                      </div>
+                    <% } %>
+                  <% } else if (doc.extraction_status === 'processing') { %>
+                    <p class="animate-pulse px-4 py-3 text-sm text-blue-700">🤖 AI analyzing...</p>
+                  <% } else if (doc.extraction_status === 'failed' || doc.extraction_status === 'retry_pending') { %>
+                    <p class="px-4 py-3 text-sm text-orange-800">Extraction needs another attempt.</p>
+                  <% } %>
+                </article>
+              <% }) %>
+            </section>
+          <% } %>
+        <% }) %>
+      </div>
+      <% } %>
+  </main>
+  <script>
+    async function retryExtraction(docId, button) {
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Retrying...';
+
+      try {
+        const response = await fetch(`/dashboard/documents/${encodeURIComponent(docId)}/retry-extraction`, { method: 'POST' });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Extraction retry failed');
+        }
+        window.location.reload();
+      } catch (error) {
+        alert('Retry failed: ' + error.message);
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    }
+  </script>
+</body>
+</html>

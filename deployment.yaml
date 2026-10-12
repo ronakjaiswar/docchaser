@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docchaser
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docchaser
+  template:
+    metadata:
+      labels:
+        app: docchaser
+    spec:
+      containers:
+        - name: docchaser
+          image: docchaser:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - secretRef:
+                name: docchaser-secrets

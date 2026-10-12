@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Import Clients - DocChaser</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <nav class="bg-white shadow-sm border-b">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <a href="/dashboard" class="text-xl font-bold text-gray-800">DocChaser</a>
+      <a href="/dashboard" class="text-sm text-blue-600 hover:underline">← Back</a>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-white p-8 rounded-lg shadow-sm mb-6">
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">Import Clients</h1>
+      <p class="text-gray-600 text-sm mb-6">
+        Upload your client list (CSV or Excel). Columns must include <strong>name</strong> and <strong>phone/mobile/contact</strong>.
+      </p>
+
+      <% if (error) { %>
+        <div class="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm"><%= error %></div>
+      <% } %>
+
+      <form action="/clients/import" method="POST" enctype="multipart/form-data" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            CSV or Excel file
+          </label>
+          <input type="file" name="file" accept=".csv,.xlsx,.xls" required
+            class="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+        </div>
+        <button type="submit"
+          class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-medium">
+          Upload & Preview
+        </button>
+      </form>
+
+      <div class="mt-4 p-3 bg-blue-50 rounded text-xs text-blue-800">
+        <strong>Sample format:</strong>
+        <pre class="mt-1 font-mono">Client Name,Phone
+Ramesh Traders,9876543210
+ABC Pvt Ltd,9876543211</pre>
+      </div>
+    </div>
+
+    <% if (preview) { %>
+      <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-bold text-gray-800">
+            Preview (<%= preview.length %> of <%= totalRows %> rows)
+          </h2>
+        </div>
+
+        <div class="text-sm text-gray-600 mb-3">
+          Detected columns: <strong>Name →</strong> <%= nameCol %> |
+          <strong>Phone →</strong> <%= phoneCol %>
+        </div>
+
+        <div class="overflow-x-auto mb-4">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="text-left p-2 font-medium">Name</th>
+                <th class="text-left p-2 font-medium">Phone</th>
+                <th class="text-left p-2 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% preview.forEach(row => { %>
+                <tr class="border-b">
+                  <td class="p-2"><%= row.name || '-' %></td>
+                  <td class="p-2 font-mono"><%= row.phone || '-' %></td>
+                  <td class="p-2">
+                    <% if (row.valid) { %>
+                      <span class="text-green-600 text-xs">✓ Valid</span>
+                    <% } else { %>
+                      <span class="text-red-500 text-xs">✗ Invalid</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+
+        <form action="/clients/import/confirm" method="POST" class="flex gap-3">
+          <button type="submit"
+            class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 font-medium">
+            Import All Valid Rows
+          </button>
+          <a href="/clients/import"
+            class="px-6 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium">
+            Cancel
+          </a>
+        </form>
+      </div>
+    <% } %>
+  </main>
+</body>
+</html>
